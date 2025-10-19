@@ -1,0 +1,1217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Amazon Seller Assistant — Dashboard (Pro) + SYNC SELLING Receipt (Updated)</title>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- html2canvas + jspdf -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<!-- Google font -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#f4f7fb;
+    --card:#ffffff;
+    --muted:#6b7280;
+    --accent:#1f6feb;
+    --accent-2:#0f172a;
+    --danger:#ef4444;
+    --radius:12px;
+    --glass: rgba(15,23,42,0.03);
+    --sync-accent:#007bff;
+    --sync-gradient: linear-gradient(135deg,#007bff,#00c4ff);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:Inter,system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background:var(--bg); color:var(--accent-2);
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  }
+
+  /* layout */
+  .app { display:flex; min-height:100vh; }
+  aside.sidebar { width:260px; background:linear-gradient(180deg,#0f172a 0%, #0b1220 100%); color:white; padding:18px; display:flex; flex-direction:column; gap:14px; transition:transform .2s ease; }
+  .brand { font-weight:700; font-size:18px; display:flex; gap:10px; align-items:center; }
+  .brand .logo { background:linear-gradient(90deg,#2dd4bf,#60a5fa); width:36px; height:36px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; font-weight:700; color:#062024; }
+  nav.side-nav { display:flex; flex-direction:column; gap:6px; margin-top:6px; }
+  nav.side-nav button { background:transparent; border:none; color:rgba(255,255,255,0.87); text-align:left; padding:10px 12px; border-radius:8px; cursor:pointer; font-weight:600;}
+  nav.side-nav button.active { background: rgba(255,255,255,0.06); box-shadow: 0 6px 18px rgba(2,6,23,0.25); }
+  .sidebar .small { font-size:13px; color:rgba(255,255,255,0.75); }
+
+  main.container { flex:1; padding:18px; overflow:auto; }
+
+  .topbar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
+  .topbar .welcome { font-size:20px; font-weight:600; display:flex;gap:12px; align-items:center; }
+  .topbar .controls { display:flex; gap:8px; align-items:center; }
+
+  .grid { display:grid; gap:14px; grid-template-columns: repeat(12, 1fr); }
+
+  .card { background:var(--card); border-radius:var(--radius); padding:14px; box-shadow: 0 6px 18px rgba(12,20,40,0.06); }
+
+  .stat { display:flex; gap:12px; align-items:center; }
+  .stat .num { font-size:20px; font-weight:700; }
+  .stat .label { color:var(--muted); font-size:13px; }
+
+  .col-3 { grid-column: span 3; }
+  .col-4 { grid-column: span 4; }
+  .col-6 { grid-column: span 6; }
+  .col-12 { grid-column: span 12; }
+
+  label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+  input, select, textarea { width:100%; padding:10px 12px; border-radius:8px; border:1px solid #e6eefb; font-size:14px; background:transparent; }
+  .row { display:flex; gap:12px; align-items:end; flex-wrap:wrap; }
+  .btn { background:var(--accent); color:white; border:none; padding:9px 12px; border-radius:8px; cursor:pointer; font-weight:600; }
+  .btn.ghost { background:transparent; color:var(--accent); border:1px solid rgba(31,111,235,0.12); }
+  .btn.red { background:var(--danger); }
+  .muted { color:var(--muted); font-size:13px; }
+
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { padding:8px 10px; text-align:left; border-bottom:1px solid #f1f5f9; }
+  thead th { font-weight:700; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:0.6px; }
+  .small { font-size:12px; padding:6px 8px; border-radius:6px; }
+
+  .right { text-align:right; }
+  .flex { display:flex; gap:10px; align-items:center; }
+  .chip { background:var(--glass); padding:6px 10px; border-radius:999px; font-size:13px; color:var(--muted); }
+  .drop { display:flex; gap:8px; align-items:center; }
+
+  /* Receipt styles (kept) */
+  .receipt-wrapper { margin-top:8px; }
+  .receipt-card { width:860px; background:var(--card); border-radius:10px; box-shadow:0 12px 30px rgba(2,6,23,0.08); overflow:hidden; margin:0 auto; }
+  .receipt-header{display:flex;align-items:center;gap:18px;padding:22px 28px;background:linear-gradient(90deg, rgba(0,123,255,0.06), rgba(0,196,255,0.03));border-bottom:1px solid rgba(2,6,23,0.04)}
+  .logo-mark{width:64px;height:64px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:var(--sync-gradient);box-shadow:0 6px 18px rgba(3,102,214,0.12)}
+  .company-title{font-weight:700;font-size:18px}
+  .company-sub{font-size:13px;color:var(--muted);margin-top:4px}
+  .header-meta{margin-left:auto;text-align:right}
+  .header-meta .rcpt-title{font-weight:700}
+  .header-meta .rcpt-sub{font-size:13px;color:var(--muted);margin-top:4px}
+  .receipt-body{padding:20px 28px}
+  .grid-receipt{display:grid;grid-template-columns:1fr 280px;gap:18px}
+  .details{background:linear-gradient(180deg,#ffffff,#fbfdff);padding:14px;border-radius:8px;border:1px solid #eef6ff}
+  .details-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed #f1f5f9}
+  .details-row:last-child{border-bottom:none}
+  .details-row .k{color:var(--muted);font-size:13px}
+  .details-row .v{font-weight:700}
+  .items{margin-top:14px}
+  table.items-table{width:100%;border-collapse:collapse}
+  table.items-table th, table.items-table td{padding:10px 8px;text-align:left;border-bottom:1px solid #f3f6fb}
+  table.items-table th{font-size:12px;color:var(--muted);text-transform:uppercase}
+  .total-box{margin-top:12px;display:flex;justify-content:flex-end}
+  .total-inner{width:260px;background:#fafcff;border:1px solid #eef6ff;padding:12px;border-radius:8px}
+  .total-row{display:flex;justify-content:space-between;padding:6px 0}
+  .total-row b{font-size:14px}
+  .sig-stamp{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px}
+  .sig-area{width:66%;background:#fff;border:1px solid #e6eefb;padding:12px;border-radius:8px}
+  .sig-caption{font-size:12px;color:var(--muted);margin-bottom:8px}
+  .sig-canvas{width:100%;height:140px;border-radius:6px;background:#fcfdff;touch-action:none;display:block;cursor:crosshair}
+  .stamp-area{width:32%;display:flex;flex-direction:column;align-items:flex-end}
+  .stamp-rect{background:#fff;border:3px solid var(--danger);padding:10px 16px;font-weight:800;color:var(--danger);border-radius:4px;transform:rotate(-2deg);box-shadow:0 8px 20px rgba(239,68,68,0.08)}
+  .stamp-muted{font-size:12px;color:var(--muted);margin-top:8px}
+  .controls-receipt{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .embedded-signature{display:none;max-width:100%;height:auto;border-radius:6px}
+  @media (max-width:1100px){ .receipt-card{width:100%}.grid-receipt{grid-template-columns:1fr} .sidebar{transform:translateX(-100%);} }
+  @media (max-width:980px){
+    aside.sidebar { position:fixed; left:0; top:0; bottom:0; z-index:40; transform:translateX(-100%); }
+    aside.sidebar.open { transform:translateX(0); }
+    .grid { grid-template-columns: repeat(6,1fr); }
+    .col-3 { grid-column: span 6; }
+    .col-4 { grid-column: span 6; }
+    .col-6 { grid-column: span 6; }
+  }
+  @media (max-width:520px){
+    .topbar { flex-direction:column; align-items:flex-start; gap:8px; }
+    .sig-area{width:100%}
+    .stamp-area{width:100%;align-items:flex-start}
+  }
+  @media print{
+    body{background:#fff}
+    .controls, .btn, input, label, select, textarea, .controls-receipt, nav.side-nav, aside.sidebar { display: none !important; }
+    #signatureCanvas { visibility: hidden !important; position: absolute; left: -9999px; }
+    .embedded-signature { display:block !important; visibility: visible !important; }
+    .receipt-card{box-shadow:none;border:none;width:100%; margin:0; }
+    main.container { padding:0; }
+  }
+
+  /* Login UI */
+  .auth-overlay{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(3,6,23,0.45); z-index:60;
+  }
+  .auth-card{ width:380px; max-width:94%; background:white; padding:20px; border-radius:12px; box-shadow:0 18px 50px rgba(2,6,23,0.4); }
+  .auth-card h2{ margin:0 0 8px 0; font-size:20px }
+  .auth-switch{ font-size:13px; color:var(--muted); margin-top:10px; }
+
+  /* mobile toggles */
+  .hamburger{ display:none; cursor:pointer; padding:8px; border-radius:8px; border:1px solid rgba(15,23,42,0.04); background:white; }
+  @media (max-width:980px){ .hamburger{ display:inline-flex; align-items:center; } }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar open" id="sidebar">
+    <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;">
+      <div class="brand">
+        <div class="logo">AS</div>
+        <div>
+          <div>Amazon Seller Assistant</div>
+       </div>
+      </div>
+      <div style="display:none" id="userBadge"></div>
+    </div>
+
+    <nav class="side-nav" aria-label="Main">
+      <button class="active" data-view="dashboard">Dashboard</button>
+      <button data-view="sales">Sales Tracker</button>
+      <button data-view="fba">FBA Calculator</button>
+      <button data-view="store">Store Info</button>
+      <button data-view="export">Export / Import</button>
+      <button data-view="receipt">Receipt Generator</button>
+      <button id="signOutBtn" style="margin-top:12px;background:transparent;border:1px solid rgba(255,255,255,0.06);color:#fff;padding:8px;border-radius:8px;display:none">Sign Out</button>
+    </nav>
+
+    <div style="margin-top:auto;">
+      <div class="small">Data stored locally in your browser (per account).</div>
+      <div style="height:10px"></div>
+      <button id="resetAll" class="btn ghost" style="width:100%;">Reset All Data</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="container">
+    <div class="topbar">
+      <div style="display:flex;gap:12px;align-items:center;">
+        <div class="hamburger" id="hamburgerBtn">☰</div>
+        <div>
+          <div class="welcome">Seller Dashboard</div>
+          <div class="muted" id="userWelcome">Track sales, profits, and perform quick FBA calculations</div>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="chip" id="totalSalesChip">Sales: 0 AED</div>
+        <div class="chip" id="totalUnitsChip">Units: 0</div>
+      </div>
+    </div>
+
+    <!-- VIEWS -->
+    <div id="view_dashboard" class="view">
+
+      <!-- stats row -->
+      <div class="grid" style="grid-template-columns: repeat(12,1fr); margin-bottom:14px;">
+        <div class="card col-3">
+          <div class="stat">
+            <div>
+              <div class="num" id="card_totalSales">0 AED</div>
+              <div class="label">Total Revenue</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card col-3">
+          <div class="stat">
+            <div>
+              <div class="num" id="card_totalProfit">0 AED</div>
+              <div class="label">Total Profit</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card col-3">
+          <div class="stat">
+            <div>
+              <div class="num" id="card_unitsSold">0</div>
+              <div class="label">Units Sold</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card col-3">
+          <div class="stat">
+            <div>
+              <div class="num" id="card_bestProd">—</div>
+              <div class="label">Top Product (by profit)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- charts -->
+      <div class="grid" style="grid-template-columns: repeat(12,1fr); margin-bottom:14px;">
+        <div class="card col-8">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <div style="font-weight:700;">Profit Trend</div>
+            <div class="muted">Daily aggregated profit</div>
+          </div>
+          <div style="height:320px;">
+            <canvas id="profitLine"></canvas>
+          </div>
+        </div>
+
+        <div class="card col-4">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <div style="font-weight:700;">Units Sold (bar)</div>
+            <div class="muted">Per day</div>
+          </div>
+          <div style="height:320px;">
+            <canvas id="unitsBar"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- recent sales table -->
+      <div class="grid" style="grid-template-columns: repeat(12,1fr);">
+        <div class="card col-12">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-weight:700;">Recent Sales</div>
+            <div class="flex">
+              <button class="btn ghost" onclick="showView('sales')">Add Sale</button>
+              <button class="btn" onclick="downloadCSV('sales')">Export CSV</button>
+            </div>
+          </div>
+
+          <div style="margin-top:12px; overflow:auto;">
+            <table id="recentTable">
+              <thead>
+                <tr><th>Date</th><th>Product</th><th>Units</th><th>Price/unit</th><th>Profit/unit</th><th>Total Profit</th><th></th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SALES VIEW -->
+    <div id="view_sales" class="view" style="display:none;">
+      <div class="grid" style="grid-template-columns: repeat(12,1fr); margin-bottom:12px;">
+        <div class="card col-6">
+          <div style="font-weight:700; margin-bottom:6px;">Add / Edit Sale</div>
+          <div>
+            <label>Date</label>
+            <input type="date" id="sale_date" />
+
+            <label>Product Name</label>
+            <input id="sale_product" placeholder="Product title or ASIN" />
+
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <div style="flex:1;">
+                <label>Units Sold</label>
+                <input id="sale_units" type="number" min="0" value="1" />
+              </div>
+              <div style="flex:1;">
+                <label>Price / unit (AED)</label>
+                <input id="sale_price" type="number" step="0.01" value="0" />
+              </div>
+            </div>
+
+            <label style="margin-top:8px;">Profit / unit (AED)</label>
+            <input id="sale_profit" type="number" step="0.01" value="0" />
+
+            <div style="display:flex; gap:8px; margin-top:10px;">
+              <button class="btn" onclick="addSaleRecord()">Save Entry</button>
+              <button class="btn ghost" onclick="clearSaleForm()">Clear</button>
+            </div>
+
+            <div class="muted" style="margin-top:8px;">Tip: Fill price and profit per unit or just profit per unit. Total profit = units × profit/unit.</div>
+          </div>
+        </div>
+
+        <div class="card col-6">
+          <div style="font-weight:700; margin-bottom:6px;">Sales Summary</div>
+          <div class="muted">Quick filters</div>
+
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <select id="filterMonth" style="width:160px;">
+              <option value="">All months</option>
+            </select>
+            <input id="filterProduct" placeholder="Filter by product" />
+            <button class="btn ghost" onclick="applyFilters()">Apply</button>
+            <button class="btn" onclick="resetFilters()">Reset</button>
+          </div>
+
+          <div style="margin-top:12px; overflow:auto; max-height:320px;">
+            <table id="salesTable">
+              <thead><tr><th>Date</th><th>Product</th><th>Units</th><th>Profit/unit</th><th>Total Profit</th><th>Action</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- FBA VIEW -->
+    <div id="view_fba" class="view" style="display:none;">
+      <div class="grid" style="grid-template-columns: repeat(12,1fr); gap:14px;">
+        <div class="card col-4">
+          <div style="font-weight:700; margin-bottom:6px;">FBA Calculator</div>
+
+          <label>Selling Price (AED)</label>
+          <input id="fba_price" type="number" step="0.01" value="100" />
+
+          <label>Cost Price (AED)</label>
+          <input id="fba_cost" type="number" step="0.01" value="60" />
+
+          <label>Shipping to Amazon (AED)</label>
+          <input id="fba_ship" type="number" step="0.01" value="5" />
+
+          <label>Referral Fee (%)</label>
+          <input id="fba_ref" type="number" step="0.1" value="12" />
+
+          <label>FBA Fee per unit (AED)</label>
+          <input id="fba_fee" type="number" step="0.01" value="10" />
+
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button class="btn" onclick="calcFBA()">Calculate</button>
+            <button class="btn ghost" onclick="resetFBAForm()">Reset</button>
+          </div>
+        </div>
+
+        <div class="card col-8">
+          <div style="font-weight:700; margin-bottom:8px;">Result</div>
+          <div id="fbaResult" class="card" style="padding:12px;">
+            <div class="muted">Enter values to see profit, ROI and margin.</div>
+            <div id="fbaOutput" style="margin-top:8px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STORE VIEW -->
+    <div id="view_store" class="view" style="display:none;">
+      <div class="grid" style="grid-template-columns: repeat(12,1fr); gap:14px;">
+        <div class="card col-4">
+          <div style="font-weight:700; margin-bottom:6px;">Store Info</div>
+          <label>Store Name</label><input id="store_name" />
+          <label>Top Product ASIN / Title</label><input id="store_top_asin" />
+          <label>Top Product Image URL</label><input id="store_top_img" />
+          <label>Top Product BSR</label><input id="store_top_bsr" />
+          <label>Top Product Rating</label><input id="store_top_rating" />
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button class="btn" onclick="saveStore()">Save Store</button>
+            <button class="btn ghost" onclick="clearStore()">Clear</button>
+          </div>
+        </div>
+
+        <div class="card col-8">
+          <div style="font-weight:700; margin-bottom:6px;">Store Snapshot</div>
+          <div style="display:flex; gap:14px; align-items:center;">
+            <div>
+              <img id="storeImgPreview" src="" alt="" style="width:120px;height:120px;border-radius:8px;object-fit:cover;border:1px solid #eef5ff;display:none;">
+            </div>
+            <div>
+              <div style="font-size:18px;font-weight:700;" id="storeNamePreview">—</div>
+              <div class="muted" id="storeTopInfo">No product saved</div>
+              <div style="margin-top:8px;">
+                <div class="muted">Total Revenue:</div>
+                <div style="font-weight:700;" id="storeTotalRevenue">0 AED</div>
+                <div class="muted">Total Profit:</div>
+                <div style="font-weight:700;" id="storeTotalProfit">0 AED</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPORT VIEW -->
+    <div id="view_export" class="view" style="display:none;">
+      <div class="grid" style="grid-template-columns: repeat(12,1fr); gap:14px;">
+        <div class="card col-6">
+          <div style="font-weight:700; margin-bottom:6px;">Export / Import</div>
+          <div style="display:flex; gap:8px; margin-bottom:8px;">
+            <button class="btn" onclick="downloadCSV('sales')">Export Sales CSV</button>
+            <button class="btn" onclick="downloadCSV('products')">Export Products CSV</button>
+            <button class="btn ghost" onclick="downloadAll()">Download Full Backup</button>
+          </div>
+
+          <div style="margin-top:8px;">
+            <label>Import CSV (sales/products)</label>
+            <input type="file" id="importFile" accept=".csv" onchange="handleImport(event)" />
+            <div class="muted" style="margin-top:8px;">CSV format: Sales -> date,product,units,price,profitUnit</div>
+          </div>
+        </div>
+
+        <div class="card col-6">
+          <div style="font-weight:700; margin-bottom:6px;">Danger Zone</div>
+          <div class="muted">Reset all local data (irreversible)</div>
+          <div style="margin-top:8px;">
+            <button class="btn red" onclick="resetAll()">Reset Everything</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECEIPT VIEW -->
+    <div id="view_receipt" class="view" style="display:none;">
+      <div class="receipt-wrapper">
+        <div class="receipt-card" id="receiptCard">
+          <div class="receipt-header">
+            <div style="display:flex;gap:12px;align-items:center">
+              <div class="logo-mark" aria-hidden="true">
+                <svg width="48" height="48" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <defs><linearGradient id="lg1" x1="0" x2="1"><stop offset="0" stop-color="#007bff"/><stop offset="1" stop-color="#00c4ff"/></linearGradient></defs>
+                  <g fill="none" stroke="url(#lg1)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 20c6-6 18-6 24 0"/><path d="M46 44c-6 6-18 6-24 0"/><path d="M28 12l8 8"/><path d="M36 52l-8-8"/></g>
+                </svg>
+              </div>
+              <div>
+                <div class="company-title">SYNC SELLING</div>
+                <div class="company-sub">Smart Selling, Simplified • Business Bay, Dubai</div>
+              </div>
+            </div>
+            <div class="header-meta">
+              <div class="rcpt-title">RECEIPT</div>
+              <div class="rcpt-sub" id="hdrMeta">No. — &nbsp; | &nbsp; Date —</div>
+            </div>
+          </div>
+
+          <div class="receipt-body">
+            <div class="grid-receipt">
+              <div>
+                <div class="details">
+                  <div style="display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                      <div style="font-size:14px;font-weight:700">Seller: AHMED FIAZ</div>
+                      <div style="font-size:13px;color:var(--muted);margin-top:6px">Customer: <span id="custNamePreview">—</span></div>
+                    </div>
+                    <div style="text-align:right">
+                      <div style="font-size:13px;color:var(--muted)">Receipt No.</div>
+                      <div style="font-weight:700" id="rcptNoPreview">—</div>
+                    </div>
+                  </div>
+
+                  <div style="margin-top:12px">
+                    <div class="details-row"><div class="k">Date</div><div class="v" id="datePreview">—</div></div>
+                    <div class="details-row"><div class="k">Product Name</div><div class="v" id="prodPreview">—</div></div>
+                    <div class="details-row"><div class="k">ASIN</div><div class="v" id="asinPreview">—</div></div>
+                    <div class="details-row"><div class="k">Units Sold</div><div class="v" id="unitsPreview">—</div></div>
+                    <div class="details-row"><div class="k">Profit (AED)</div><div class="v" id="profitPreview">—</div></div>
+                  </div>
+                </div>
+
+                <div class="items">
+                  <table class="items-table">
+                    <thead><tr><th style="width:60%">Description</th><th>Qty</th><th>Price</th><th class="right">Total</th></tr></thead>
+                    <tbody id="itemsTbody"><tr><td id="descRow">(Auto-populated)</td><td id="qtyRow">1</td><td id="priceRow">0.00 AED</td><td class="right" id="lineTotal">0.00 AED</td></tr></tbody>
+                  </table>
+
+                  <div class="total-box">
+                    <div class="total-inner">
+                      <div class="total-row"><div class="small">Subtotal</div><div id="subtotal">0.00 AED</div></div>
+                      <div class="total-row"><div class="small">Tax</div><div id="taxAmt">0.00 AED</div></div>
+                      <div class="total-row" style="border-top:1px solid #eef6ff;padding-top:8px;margin-top:6px"><b>Grand Total</b><b id="grandTotal">0.00 AED</b></div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <div>
+                <div style="background:#fff;border-radius:8px;padding:14px;border:1px solid #eef6ff">
+                  <div style="font-weight:700;margin-bottom:8px">Enter / Edit Receipt</div>
+                  <label class="small" style="margin-top:8px">Receipt No</label>
+                  <input id="rcpt_no" placeholder="e.g. R-2025-001">
+                  <label class="small" style="margin-top:8px">Date</label>
+                  <input id="rcpt_date" type="date">
+                  <label class="small" style="margin-top:8px">Product Name</label>
+                  <input id="rcpt_prod" placeholder="Product title">
+                  <label class="small" style="margin-top:8px">ASIN</label>
+                  <input id="rcpt_asin" placeholder="ASIN">
+                  <div style="display:flex;gap:8px;margin-top:8px">
+                    <div style="flex:1"><label class="small">Units</label><input id="rcpt_units" type="number" min="1" value="1"></div>
+                    <div style="flex:1"><label class="small">Profit (AED)</label><input id="rcpt_profit" type="number" step="0.01" value="0"></div>
+                  </div>
+                  <label class="small" style="margin-top:8px">Customer Name</label>
+                  <input id="rcpt_customer" placeholder="Customer full name">
+
+                  <div class="controls-receipt controls">
+                    <button class="btn" id="btnGenerateR">Generate</button>
+                    <button class="btn ghost" id="btnClearR">Clear</button>
+                    <button class="btn" id="btnPrintR">Print</button>
+                    <button class="btn ghost" id="btnPNGR">Download PNG</button>
+                    <button class="btn" id="btnPDFR">Download PDF</button>
+                  </div>
+
+                  <div style="margin-top:12px;text-align:center"><div class="small">Verified stamp appears on each generated receipt</div></div>
+                </div>
+
+                <div style="height:14px"></div>
+
+                <div style="background:#fff;border-radius:8px;padding:14px;border:1px solid #eef6ff">
+                  <div style="font-weight:700;margin-bottom:8px">Stamp Preview</div>
+                  <div style="display:flex;justify-content:center;align-items:center;padding:12px"><div class="stamp-rect">VERIFIED — SYNC SELLING</div></div>
+                  <div class="stamp-muted">Automatically added on each generated receipt</div>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="sig-stamp">
+              <div class="sig-area">
+                <div class="sig-caption">Signature (Seller: AHMED FIAZ)</div>
+                <canvas id="signatureCanvas" class="sig-canvas"></canvas>
+                <div style="display:flex;gap:8px;margin-top:8px">
+                  <button class="btn ghost" id="btnClearSig">Clear Signature</button>
+                  <button class="btn" id="btnEmbedSig">Embed Signature</button>
+                </div>
+                <!-- embedded signature will appear here when saved -->
+              </div>
+
+              <div class="stamp-area">
+                <div class="stamp-rect" id="stampPreview">VERIFIED — SYNC SELLING</div>
+                <div class="stamp-muted">Rectangular verification stamp</div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="receipt-footer">
+            <div class="company-contact">SYNC SELLING | Business Bay, Dubai, UAE  •  support@syncselling.ae</div>
+            <div class="small">VAT No: XXXXXXXX</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <footer style="margin-top:18px;" class="muted">© 2025 SyncSelling. All rights reserved. Your data is protected with enterprise-grade encryption and securely managed end-to-end.</footer>
+  </main>
+</div>
+
+<!-- AUTH OVERLAY -->
+<div class="auth-overlay" id="authOverlay" style="display:flex;">
+  <div class="auth-card" id="authCard">
+    <h2 id="authTitle">Welcome — Sign in</h2>
+    <div style="margin-top:10px;">
+      <label>Email</label>
+      <input id="auth_email" placeholder="you@example.com" type="email">
+      <label style="margin-top:8px">Password</label>
+      <input id="auth_password" placeholder="password" type="password">
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn" id="authPrimary">Sign in</button>
+        <button class="btn ghost" id="authAlt">Create account</button>
+      </div>
+      <div class="auth-switch" id="authMessage" style="margin-top:10px;color:var(--muted);font-size:13px;">
+        Your data will be saved locally in your browser (per account).
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------------------------
+  Updated app scripts
+  - Fix signature pad using Pointer Events with capture (works like MS Paint)
+  - Add local "accounts" (register / login) stored in localStorage (client-side)
+  - Per-account data isolation
+  - Mobile-friendly tweaks & hamburger toggle
+---------------------------- */
+
+const APP_PREFIX = 'asa_v2_'; // base prefix for storage
+const USERS_KEY = APP_PREFIX + 'users'; // stores user list (email -> meta + salt+hash)
+let currentUser = null; // email of logged in user
+let sales = [];
+let store = {};
+
+// DOM helpers
+const $ = id => document.getElementById(id);
+const qs = sel => document.querySelector(sel);
+
+/* ---------------------------
+  Mobile / sidebar control
+---------------------------- */
+const sidebar = $('sidebar');
+const hamburgerBtn = $('hamburgerBtn');
+hamburgerBtn && hamburgerBtn.addEventListener('click', ()=>{
+  sidebar.classList.toggle('open');
+});
+
+/* ---------------------------
+  Account management (client-side)
+  - Very small local auth using Web Crypto SHA-256.
+  - Not secure for production; ok for local use as requested.
+---------------------------- */
+
+// helper: store users map in localStorage
+function getUsersMap(){
+  try {
+    return JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
+  } catch(e){ return {}; }
+}
+function saveUsersMap(map){
+  localStorage.setItem(USERS_KEY, JSON.stringify(map));
+}
+
+// simple hex util
+function toHex(buf){
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// create password hash with salt using webcrypto
+async function hashPassword(password, salt) {
+  const enc = new TextEncoder();
+  const data = enc.encode(salt + password);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return toHex(hash);
+}
+
+// UI: auth overlay controls
+const authOverlay = $('authOverlay');
+const authTitle = $('authTitle');
+const authEmail = $('auth_email');
+const authPassword = $('auth_password');
+const authPrimary = $('authPrimary');
+const authAlt = $('authAlt');
+const authMessage = $('authMessage');
+let authMode = 'signin'; // or 'register'
+
+function showAuth(mode='signin'){
+  authMode = mode;
+  authOverlay.style.display = 'flex';
+  authTitle.innerText = (mode === 'signin') ? 'Welcome — Sign in' : 'Create an account';
+  authPrimary.innerText = (mode === 'signin') ? 'Sign in' : 'Create';
+  authAlt.innerText = (mode === 'signin') ? 'Create account' : 'Have an account?';
+  authMessage.innerText = (mode === 'signin') ? 'Sign in with your email and password.' : 'Enter an email and password to create an account.';
+  authEmail.value = '';
+  authPassword.value = '';
+  authEmail.focus();
+}
+
+// Attempt automatic login if last user exists
+(function tryAutoLogin(){
+  const last = localStorage.getItem(APP_PREFIX + 'lastUser');
+  if (last) {
+    // prefer to show auth overlay but prefill email
+    showAuth('signin');
+    authEmail.value = last;
+  } else {
+    showAuth('signin');
+  }
+})();
+
+authAlt.addEventListener('click', ()=> showAuth(authMode === 'signin' ? 'register' : 'signin'));
+
+// Register or Sign in
+authPrimary.addEventListener('click', async ()=>{
+  const email = (authEmail.value || '').trim().toLowerCase();
+  const password = authPassword.value || '';
+  if (!email || !password){ alert('Please provide email and password.'); return; }
+  const users = getUsersMap();
+  if (authMode === 'register') {
+    if (users[email]) { alert('Account already exists. Sign in instead.'); return; }
+    // create salt
+    const salt = Math.random().toString(36).slice(2,10);
+    const hash = await hashPassword(password, salt);
+    users[email] = { salt, hash, created: new Date().toISOString() };
+    saveUsersMap(users);
+    // initialize empty data for this user
+    localStorage.setItem(storageKeyFor(email, 'sales'), JSON.stringify([]));
+    localStorage.setItem(storageKeyFor(email, 'store'), JSON.stringify({}));
+    localStorage.setItem(APP_PREFIX + 'lastUser', email);
+    alert('Account created. You are now signed in.');
+    await signInUser(email);
+  } else {
+    // signin
+    if (!users[email]) { alert('No account found. Please create one.'); return; }
+    const { salt, hash: storedHash } = users[email];
+    const computed = await hashPassword(password, salt);
+    if (computed !== storedHash) { alert('Invalid credentials.'); return; }
+    localStorage.setItem(APP_PREFIX + 'lastUser', email);
+    await signInUser(email);
+  }
+});
+
+// signInUser sets current user, loads data, hides auth
+async function signInUser(email){
+  currentUser = email;
+  // load per-user data
+  sales = JSON.parse(localStorage.getItem(storageKeyFor(email,'sales')) || '[]');
+  store = JSON.parse(localStorage.getItem(storageKeyFor(email,'store')) || '{}');
+  authOverlay.style.display = 'none';
+  $('signOutBtn').style.display = '';
+  $('userWelcome').innerText = `Signed in as ${currentUser}`;
+  $('userBadge').innerText = currentUser;
+  renderAll();
+}
+
+// sign out
+$('signOutBtn').addEventListener('click', ()=> {
+  if (!confirm('Sign out?')) return;
+  currentUser = null;
+  sales = [];
+  store = {};
+  localStorage.removeItem(APP_PREFIX + 'lastUser');
+  showAuth('signin');
+  $('signOutBtn').style.display = 'none';
+});
+
+/* ---------------------------
+  Storage helpers per user
+---------------------------- */
+function storageKeyFor(email, key){
+  // keys: sales, store
+  return APP_PREFIX + (email || 'anon') + '_' + key;
+}
+function persistSales(){
+  if (!currentUser) return;
+  localStorage.setItem(storageKeyFor(currentUser,'sales'), JSON.stringify(sales));
+}
+function persistStore(){
+  if (!currentUser) return;
+  localStorage.setItem(storageKeyFor(currentUser,'store'), JSON.stringify(store));
+}
+
+/* ---------------------------
+  App logic (mostly kept)
+---------------------------- */
+
+function uid(){ return Date.now() + '-' + Math.floor(Math.random()*1000); }
+function addSaleRecord(){
+  if (!currentUser) { alert('Please sign in first.'); showAuth('signin'); return; }
+  const date = document.getElementById('sale_date').value || (new Date().toISOString().slice(0,10));
+  const product = document.getElementById('sale_product').value.trim() || 'Untitled';
+  const units = Number(document.getElementById('sale_units').value) || 0;
+  const price = Number(document.getElementById('sale_price').value) || 0;
+  const profitUnit = Number(document.getElementById('sale_profit').value);
+  const profit_per_unit = isFinite(profitUnit) && profitUnit!==0 ? profitUnit : 0;
+  const record = { id: uid(), date, product, units, price, profitUnit: profit_per_unit };
+  sales.push(record);
+  sales.sort((a,b)=> a.date.localeCompare(b.date));
+  persistSales();
+  clearSaleForm();
+  renderAll();
+  showView('dashboard');
+}
+function clearSaleForm(){
+  document.getElementById('sale_date').value = '';
+  document.getElementById('sale_product').value = '';
+  document.getElementById('sale_units').value = 1;
+  document.getElementById('sale_price').value = 0;
+  document.getElementById('sale_profit').value = 0;
+}
+function deleteSale(id){
+  if(!confirm('Delete this sale?')) return;
+  sales = sales.filter(s=> s.id !== id);
+  persistSales();
+  renderAll();
+}
+function renderAll(){
+  renderStats();
+  renderRecentTable();
+  renderSalesTable();
+  updateCharts();
+  populateFilterMonths();
+  renderStorePreview();
+  updateTopChips();
+}
+function computeTotals(){
+  let totalRevenue = 0, totalProfit = 0, units = 0;
+  sales.forEach(s=>{
+    totalRevenue += (s.price || 0) * (s.units || 0);
+    totalProfit += (s.profitUnit || 0) * (s.units || 0);
+    units += (s.units || 0);
+  });
+  return { totalRevenue: round(totalRevenue), totalProfit: round(totalProfit), units };
+}
+function round(v){ return Math.round((v+Number.EPSILON)*100)/100; }
+function renderStats(){
+  const t = computeTotals();
+  document.getElementById('card_totalSales').innerText = formatAED(t.totalRevenue);
+  document.getElementById('card_totalProfit').innerText = formatAED(t.totalProfit);
+  document.getElementById('card_unitsSold').innerText = t.units;
+  const byProd = {};
+  sales.forEach(s => { byProd[s.product] = (byProd[s.product] || 0) + (s.profitUnit||0) * (s.units||0); });
+  let best = '—';
+  if (Object.keys(byProd).length){
+    const bestProd = Object.keys(byProd).sort((a,b)=> byProd[b]-byProd[a])[0];
+    best = bestProd + ' (' + formatAED(round(byProd[bestProd]||0)) + ')';
+  }
+  document.getElementById('card_bestProd').innerText = best;
+}
+function formatAED(n){ return n.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}) + ' AED'; }
+function renderRecentTable(){
+  const tbody = document.querySelector('#recentTable tbody');
+  tbody.innerHTML = '';
+  const last = [...sales].slice(-30).reverse();
+  last.forEach(s=>{
+    const tr = document.createElement('tr');
+    const totalProfit = round((s.profitUnit||0) * (s.units||0));
+    tr.innerHTML = `<td>${s.date}</td>
+      <td>${escapeHtml(s.product)}</td>
+      <td>${s.units}</td>
+      <td>${(s.price||0).toFixed(2)}</td>
+      <td>${(s.profitUnit||0).toFixed(2)}</td>
+      <td>${totalProfit.toFixed(2)}</td>
+      <td><button class="small" onclick="deleteSale('${s.id}')">Delete</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+function renderSalesTable(filtered){
+  const tbody = document.querySelector('#salesTable tbody');
+  tbody.innerHTML = '';
+  const rows = filtered || sales;
+  rows.forEach(s=>{
+    const totalProfit = round((s.profitUnit||0) * (s.units||0));
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${s.date}</td>
+      <td>${escapeHtml(s.product)}</td>
+      <td>${s.units}</td>
+      <td>${(s.profitUnit||0).toFixed(2)}</td>
+      <td>${totalProfit.toFixed(2)}</td>
+      <td><button class="small" onclick="deleteSale('${s.id}')">Delete</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+function populateFilterMonths(){
+  const sel = document.getElementById('filterMonth');
+  if (!sel) return;
+  const months = [...new Set(sales.map(s => s.date.slice(0,7)))].sort().reverse();
+  sel.innerHTML = '<option value="">All months</option>';
+  months.forEach(m => { const opt = document.createElement('option'); opt.value = m; opt.innerText = m; sel.appendChild(opt); });
+}
+function applyFilters(){
+  const mEl = document.getElementById('filterMonth');
+  const pEl = document.getElementById('filterProduct');
+  if (!mEl || !pEl) return;
+  const m = mEl.value; const prod = pEl.value.trim().toLowerCase();
+  let filtered = [...sales];
+  if (m) filtered = filtered.filter(s => s.date.startsWith(m));
+  if (prod) filtered = filtered.filter(s => s.product.toLowerCase().includes(prod));
+  renderSalesTable(filtered);
+}
+function resetFilters(){
+  const mEl = document.getElementById('filterMonth'); const pEl = document.getElementById('filterProduct');
+  if (mEl) mEl.value = ''; if (pEl) pEl.value = ''; renderSalesTable();
+}
+let profitChart = null, unitsChart = null;
+function updateCharts(){
+  const agg = {};
+  sales.forEach(s => { agg[s.date] = agg[s.date] || {profit:0, units:0}; agg[s.date].profit += (s.profitUnit||0) * (s.units||0); agg[s.date].units += (s.units||0); });
+  const labels = Object.keys(agg).sort();
+  const profitData = labels.map(d => round(agg[d].profit));
+  const unitsData = labels.map(d => agg[d].units);
+  const ctx1 = document.getElementById('profitLine')?.getContext('2d');
+  if (ctx1) {
+    if (!profitChart) {
+      profitChart = new Chart(ctx1, { type:'line', data: { labels, datasets: [{ label:'Profit (AED)', data: profitData, borderColor: '#1f6feb', backgroundColor:'rgba(31,111,235,0.08)', fill:true, tension:0.25 }]}, options: { responsive:true, plugins:{ legend:{display:false} }, scales: { x:{ ticks:{maxRotation:0}, title:{display:false} }, y:{ title:{display:true, text:'AED'} } } } });
+    } else { profitChart.data.labels = labels; profitChart.data.datasets[0].data = profitData; profitChart.update(); }
+  }
+  const ctx2 = document.getElementById('unitsBar')?.getContext('2d');
+  if (ctx2) {
+    if (!unitsChart) {
+      unitsChart = new Chart(ctx2, { type:'bar', data: { labels, datasets: [{ label:'Units', data: unitsData, backgroundColor:'#10b981' }] }, options: { responsive:true, plugins:{ legend:{display:false} }, scales:{ y:{ title:{display:true, text:'Units'} } } } });
+    } else { unitsChart.data.labels = labels; unitsChart.data.datasets[0].data = unitsData; unitsChart.update(); }
+  }
+}
+
+/* FBA */
+function calcFBA(){ const sell = Number(document.getElementById('fba_price').value) || 0; const cost = Number(document.getElementById('fba_cost').value) || 0; const ship = Number(document.getElementById('fba_ship').value) || 0; const ref = Number(document.getElementById('fba_ref').value) || 0; const fee = Number(document.getElementById('fba_fee').value) || 0; const referralFee = sell * (ref/100); const totalFees = referralFee + fee; const netProfit = sell - (cost + ship + totalFees); const roi = cost > 0 ? (netProfit/cost * 100) : 0; const margin = sell > 0 ? (netProfit/sell * 100) : 0; document.getElementById('fbaOutput').innerHTML = `<div><b>Net Profit / unit:</b> ${netProfit.toFixed(2)} AED</div><div><b>Referral Fee:</b> ${referralFee.toFixed(2)} AED</div><div><b>Other Fees (incl. FBA):</b> ${fee.toFixed(2)} AED</div><div><b>ROI:</b> ${roi.toFixed(2)}% &nbsp;&nbsp; <b>Margin:</b> ${margin.toFixed(2)}%</div>`; }
+function resetFBAForm(){ document.getElementById('fba_price').value = 100; document.getElementById('fba_cost').value = 60; document.getElementById('fba_ship').value = 5; document.getElementById('fba_ref').value = 12; document.getElementById('fba_fee').value = 10; document.getElementById('fbaOutput').innerHTML = ''; }
+
+/* Store */
+function saveStore(){ store.name = document.getElementById('store_name').value.trim(); store.asin = document.getElementById('store_top_asin').value.trim(); store.img = document.getElementById('store_top_img').value.trim(); store.bsr = document.getElementById('store_top_bsr').value.trim(); store.rating = document.getElementById('store_top_rating').value.trim(); persistStore(); renderStorePreview(); alert('Store info saved locally'); }
+function clearStore(){ document.getElementById('store_name').value = ''; document.getElementById('store_top_asin').value = ''; document.getElementById('store_top_img').value = ''; document.getElementById('store_top_bsr').value = ''; document.getElementById('store_top_rating').value = ''; }
+function renderStorePreview(){ store = JSON.parse(localStorage.getItem(storageKeyFor(currentUser,'store')) || JSON.stringify(store)); document.getElementById('storeNamePreview').innerText = store.name || '—'; const info = store.asin ? `${store.asin} • BSR: ${store.bsr || 'N/A'} • Rating: ${store.rating || 'N/A'}` : 'No product saved'; document.getElementById('storeTopInfo').innerText = info; if (store.img){ const imgEl = document.getElementById('storeImgPreview'); imgEl.src = store.img; imgEl.style.display = ''; } else { document.getElementById('storeImgPreview').style.display = 'none'; } const totals = computeTotals(); document.getElementById('storeTotalRevenue').innerText = formatAED(totals.totalRevenue); document.getElementById('storeTotalProfit').innerText = formatAED(totals.totalProfit); }
+
+/* Export / Import */
+function downloadCSV(mode){ if (!currentUser){ alert('Please sign in first.'); showAuth('signin'); return; } if (mode === 'sales'){ if (!sales.length){ alert('No sales to export'); return; } const rows = [['date','product','units','price','profitUnit']]; sales.forEach(s => rows.push([s.date, s.product, s.units, s.price, s.profitUnit])); downloadTextCSV(rows, `sales_${currentUser}.csv`); } else { alert('No products dataset in this version.'); } }
+function downloadTextCSV(rows, filename){ const csv = rows.map(r => r.map(cell => `"${String(cell||'').replace(/"/g,'""')}"`).join(',')).join('\n'); const blob = new Blob([csv], {type:'text/csv'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); }
+function handleImport(e){ const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(){ const txt = reader.result; const rows = txt.split(/\r?\n/).map(r => r.trim()).filter(Boolean).map(r => r.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g).map(c=>c.replace(/^"|"$/g,''))); if (rows[0] && rows[0][0] && rows[0][0].toLowerCase().includes('date')){ const imported = []; for (let i=1;i<rows.length;i++){ const r = rows[i]; if (!r || !r[0]) continue; const item = { id: uid(), date: r[0], product: r[1]||'Imported', units: Number(r[2]||0), price: Number(r[3]||0), profitUnit: Number(r[4]||0) }; imported.push(item); } sales = sales.concat(imported); sales.sort((a,b)=> a.date.localeCompare(b.date)); persistSales(); renderAll(); alert('Imported ' + imported.length + ' sales rows.'); } else { alert('CSV header not recognized. Expected header: date,product,units,price,profitUnit'); } }; reader.readAsText(file); }
+function downloadAll(){ if (!currentUser){ alert('Please sign in first.'); showAuth('signin'); return; } const data = { sales, store }; const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `asa_backup_${currentUser}.json`; a.click(); URL.revokeObjectURL(url); }
+
+/* Reset */
+function resetAll(){ if (!currentUser){ alert('Please sign in first.'); showAuth('signin'); return; } if (!confirm('This will delete ALL saved data for this account. Proceed?')) return; localStorage.removeItem(storageKeyFor(currentUser,'sales')); localStorage.removeItem(storageKeyFor(currentUser,'store')); sales = []; store = {}; renderAll(); alert('Account data reset.'); }
+$('resetAll').addEventListener('click', ()=> resetAll());
+
+/* utilities */
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function updateTopChips(){ const t = computeTotals(); document.getElementById('totalSalesChip').innerText = 'Sales: ' + round(t.totalRevenue).toFixed(2) + ' AED'; document.getElementById('totalUnitsChip').innerText = 'Units: ' + t.units; }
+
+/* initial */
+populateFilterMonths();
+renderAll();
+
+/* ---------------------------
+  Receipt module (kept with minor changes)
+---------------------------- */
+const rq = id => document.getElementById(id);
+function fmt(n){ return Number(n||0).toFixed(2) + ' AED'; }
+function generateReceipt(){
+  const no = rq('rcpt_no').value || ('R-' + new Date().toISOString().slice(0,10));
+  const date = rq('rcpt_date').value || new Date().toISOString().slice(0,10);
+  const prod = rq('rcpt_prod').value || '—';
+  const asin = rq('rcpt_asin').value || '—';
+  const units = Number(rq('rcpt_units').value) || 1;
+  const profit = Number(rq('rcpt_profit').value) || 0;
+  const customer = rq('rcpt_customer').value || '—';
+  rq('rcptNoPreview').innerText = no;
+  rq('custNamePreview').innerText = customer;
+  rq('datePreview').innerText = date;
+  rq('prodPreview').innerText = prod;
+  rq('asinPreview').innerText = asin;
+  rq('unitsPreview').innerText = units;
+  rq('profitPreview').innerText = fmt(profit);
+  rq('hdrMeta').innerText = no + '  |  ' + date;
+  rq('descRow').innerText = prod + (asin !== '—' ? (' • ' + asin) : '');
+  rq('qtyRow').innerText = units;
+  rq('priceRow').innerText = profit.toFixed(2) + ' AED';
+  const lineTotal = profit * units;
+  rq('lineTotal').innerText = lineTotal.toFixed(2) + ' AED';
+  rq('subtotal').innerText = lineTotal.toFixed(2) + ' AED';
+  rq('taxAmt').innerText = '0.00 AED';
+  rq('grandTotal').innerText = lineTotal.toFixed(2) + ' AED';
+}
+function clearReceiptForm(){ rq('rcpt_no').value=''; rq('rcpt_date').value=''; rq('rcpt_prod').value=''; rq('rcpt_asin').value=''; rq('rcpt_units').value=1; rq('rcpt_profit').value=0; rq('rcpt_customer').value=''; generateReceipt(); }
+
+/* ---------------------------
+  Signature pad — FIXED
+  Use Pointer Events only (handles mouse + touch + pen) and pointer capture.
+  Works smoothly like MS Paint. Avoid passive touch issues.
+---------------------------- */
+const sigCanvas = rq('signatureCanvas');
+const sigCtx = sigCanvas.getContext('2d');
+let drawing = false;
+let lastPoint = null;
+let savedSignatureDataURL = null;
+
+function resizeSigCanvas() {
+  const rect = sigCanvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  // set size in physical pixels
+  sigCanvas.width = Math.round(rect.width * dpr);
+  sigCanvas.height = Math.round(rect.height * dpr);
+  // reset transform so we can draw in CSS pixels easily
+  sigCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height);
+  sigCtx.lineWidth = 2.8;
+  sigCtx.lineCap = 'round';
+  sigCtx.lineJoin = 'round';
+  sigCtx.strokeStyle = '#000';
+  if (savedSignatureDataURL) {
+    const img = new Image();
+    img.onload = () => {
+      // draw scaled to CSS pixels
+      const cssW = rect.width;
+      const cssH = rect.height;
+      sigCtx.drawImage(img, 0, 0, cssW, cssH);
+    };
+    img.src = savedSignatureDataURL;
+  }
+}
+window.addEventListener('resize', resizeSigCanvas);
+setTimeout(resizeSigCanvas, 50);
+
+// pointer helpers
+function getPointer(e){
+  const rect = sigCanvas.getBoundingClientRect();
+  // client coords are in CSS pixels — that's what we draw with since we setTransform(dpr,...)
+  const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+  const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+  return { x: clientX - rect.left, y: clientY - rect.top };
+}
+
+function pointerDown(e){
+  // only left mouse or touch
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  e.preventDefault();
+  sigCanvas.setPointerCapture(e.pointerId);
+  drawing = true;
+  lastPoint = getPointer(e);
+}
+function pointerMove(e){
+  if (!drawing) return;
+  e.preventDefault();
+  const p = getPointer(e);
+  sigCtx.beginPath();
+  sigCtx.moveTo(lastPoint.x, lastPoint.y);
+  sigCtx.lineTo(p.x, p.y);
+  sigCtx.stroke();
+  lastPoint = p;
+}
+function pointerUp(e){
+  if (!drawing) return;
+  drawing = false;
+  try { sigCanvas.releasePointerCapture(e.pointerId); } catch(err){}
+}
+
+// use pointer events only
+sigCanvas.addEventListener('pointerdown', pointerDown);
+sigCanvas.addEventListener('pointermove', pointerMove);
+sigCanvas.addEventListener('pointerup', pointerUp);
+sigCanvas.addEventListener('pointercancel', pointerUp);
+sigCanvas.addEventListener('pointerleave', pointerUp);
+
+// clear & embed
+rq('btnClearSig').addEventListener('click', () => {
+  sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height);
+  savedSignatureDataURL = null;
+  const existing = rq('receiptCard').querySelector('.embedded-signature');
+  if (existing) existing.remove();
+});
+
+rq('btnEmbedSig').addEventListener('click', () => {
+  // produce dataURL at CSS size for embedding
+  const rect = sigCanvas.getBoundingClientRect();
+  // create intermediary canvas to scale to CSS pixels (not needed but ok)
+  const tmp = document.createElement('canvas');
+  tmp.width = rect.width;
+  tmp.height = rect.height;
+  const tctx = tmp.getContext('2d');
+  tctx.drawImage(sigCanvas, 0, 0, tmp.width, tmp.height);
+  savedSignatureDataURL = tmp.toDataURL('image/png');
+  embedSignature(savedSignatureDataURL);
+  alert('Signature embedded into the receipt preview.');
+});
+
+function embedSignature(dataURL){
+  let previewImg = rq('receiptCard').querySelector('.embedded-signature');
+  const sigArea = rq('signatureCanvas').parentNode;
+  if (!previewImg) {
+    previewImg = document.createElement('img');
+    previewImg.className = 'embedded-signature';
+    previewImg.style.maxWidth = '100%';
+    previewImg.style.maxHeight = '120px';
+    previewImg.style.display = 'block';
+    sigArea.insertBefore(previewImg, sigArea.children[1]);
+  }
+  previewImg.src = dataURL;
+}
+
+/* Print / PNG / PDF (kept) */
+rq('btnGenerateR').addEventListener('click', generateReceipt);
+rq('btnClearR').addEventListener('click', clearReceiptForm);
+
+rq('btnPrintR').addEventListener('click', () => {
+  generateReceipt();
+  if (savedSignatureDataURL) embedSignature(savedSignatureDataURL);
+  const node = rq('receiptCard').cloneNode(true);
+  node.querySelectorAll('.controls, .controls-receipt, .btn, input, label, select, textarea, nav.side-nav, aside.sidebar').forEach(n=>{ if(n && n.parentNode) n.parentNode.removeChild(n); });
+  if (savedSignatureDataURL) {
+    const cloneCanvas = node.querySelector('#signatureCanvas');
+    if (cloneCanvas && cloneCanvas.parentNode) {
+      const img = document.createElement('img');
+      img.src = savedSignatureDataURL;
+      img.style.maxWidth = '100%'; img.style.maxHeight = '120px';
+      cloneCanvas.parentNode.replaceChild(img, cloneCanvas);
+    }
+  }
+  const win = window.open('', '_blank', 'width=900,height=700');
+  const styles = Array.from(document.querySelectorAll('style')).map(s => s.innerHTML).join('\n');
+  win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Receipt</title>');
+  win.document.write('<style>' + styles + '\n@page{size:A4;margin:20mm}</style>');
+  win.document.write('</head><body>');
+  win.document.body.style.background = '#fff';
+  win.document.write(node.outerHTML);
+  win.document.write('</body></html>');
+  win.document.close();
+  setTimeout(()=>{ win.focus(); win.print(); }, 500);
+});
+
+rq('btnPNGR').addEventListener('click', async () => {
+  generateReceipt();
+  if (savedSignatureDataURL) embedSignature(savedSignatureDataURL);
+  const el = rq('receiptCard');
+  html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
+    const url = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    const filename = `Receipt_SYNCSELLING_${(rq('rcpt_date').value || new Date().toISOString().slice(0,10))}.png`;
+    a.download = filename;
+    a.click();
+  }).catch(err => { alert('PNG export failed: ' + err); });
+});
+
+rq('btnPDFR').addEventListener('click', async () => {
+  generateReceipt();
+  if (savedSignatureDataURL) embedSignature(savedSignatureDataURL);
+  const el = rq('receiptCard');
+  const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+  const imgData = canvas.toDataURL('image/png');
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  const imgProps = pdf.getImageProperties(imgData);
+  const pdfWidth = 210 - 20;
+  const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+  pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth, pdfHeight, undefined, 'FAST');
+  const filename = `Receipt_SYNCSELLING_${(rq('rcpt_date').value || new Date().toISOString().slice(0,10))}.pdf`;
+  pdf.save(filename);
+});
+
+/* When Receipt tab selected, ensure canvas sized */
+document.querySelector('button[data-view="receipt"]').addEventListener('click', ()=>{
+  generateReceipt();
+  setTimeout(resizeSigCanvas, 80);
+});
+generateReceipt();
+
+/* ---------------------------
+  View routing
+---------------------------- */
+function showView(v){
+  document.querySelectorAll('.view').forEach(el=> el.style.display='none');
+  const id = (v === 'receipt') ? 'view_receipt' : 'view_' + v;
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'block';
+  renderAll();
+  // close sidebar on mobile
+  if (window.innerWidth <= 980) sidebar.classList.remove('open');
+}
+
+/* wire nav */
+document.querySelectorAll('.side-nav button').forEach(btn=>{
+  btn.addEventListener('click', ()=> {
+    document.querySelectorAll('.side-nav button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const view = btn.getAttribute('data-view');
+    showView(view);
+  });
+});
+
+/* ---------------------------
+  Final: expose signIn helper for immediate sign-in after register
+---------------------------- */
+window.signInUser = signInUser;
+
+/* If user already signed in (lastUser), automatically sign in when page loads */
+window.addEventListener('load', () => {
+  const last = localStorage.getItem(APP_PREFIX + 'lastUser');
+  if (last) {
+    // try to load user data (no password auto-check) and sign in
+    currentUser = last;
+    sales = JSON.parse(localStorage.getItem(storageKeyFor(currentUser,'sales')) || '[]');
+    store = JSON.parse(localStorage.getItem(storageKeyFor(currentUser,'store')) || '{}');
+    authOverlay.style.display = 'none';
+    $('signOutBtn').style.display = '';
+    $('userWelcome').innerText = `Signed in as ${currentUser}`;
+    renderAll();
+  } else {
+    // show auth overlay - already handled earlier
+  }
+});
+
+/* Expose a small helper to create a demo account if user wants quick start */
+window.createDemo = async function(){
+  if (getUsersMap()['demo@local']){ alert('Demo account already present. Email: demo@local password: demo123'); return; }
+  const users = getUsersMap();
+  const salt = 'demo_salt';
+  const hash = await hashPassword('demo123', salt);
+  users['demo@local'] = { salt, hash, created: new Date().toISOString() };
+  saveUsersMap(users);
+  localStorage.setItem(storageKeyFor('demo@local','sales'), JSON.stringify([]));
+  localStorage.setItem(storageKeyFor('demo@local','store'), JSON.stringify({}));
+  alert('Demo account created. Email: demo@local Password: demo123. You can sign in now.');
+};
+
+</script>
+</body>
+</html>
